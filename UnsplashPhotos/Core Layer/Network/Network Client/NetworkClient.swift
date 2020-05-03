@@ -8,7 +8,6 @@
 
 import RxSwift
 
-/// Highly reusable network client built using RxSwift.
 final class NetworkClient {
     typealias Parameters = [String: String]
     var baseURL: URL?
