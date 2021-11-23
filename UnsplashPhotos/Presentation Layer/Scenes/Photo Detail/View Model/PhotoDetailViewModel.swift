@@ -89,7 +89,7 @@ final class PhotoDetailViewModelImplementation: PhotoDetailViewModel {
         
         // Bind to image
         unsplashPhoto
-            .flatMap { [weak self] (photo) -> Observable<(Data?, Error?)> in
+            .flatMap { [weak self] (photo) -> Observable<Result<Data, Error>> in
                 guard let self = self else { return .empty() }
                 
                 if let photoURL = photo.urls?.regular {
@@ -100,22 +100,27 @@ final class PhotoDetailViewModelImplementation: PhotoDetailViewModel {
                     )
                 } else {
                     self.imageRetrievedError.accept(())
-                    return Observable.of((nil, NetworkError.decodingFailed))
+                    return Observable.of(.failure(NetworkError.decodingFailed))
                 }
             }
             .do(onNext: { [weak self] _ in
                 self?.isLoading.accept(false)
             })
-            .map({ [weak self] (data, error) -> (UIImage?, Error?) in
-                if let imageData = data,
-                    let image = self?.dataToImageService.getImage(from: imageData) {
-                    return (image, nil)
-                } else {
-                    self?.imageRetrievedError.accept(())
-                    return (nil, NetworkError.decodingFailed)
+            .map({ [weak self] (result) -> UIImage? in
+                
+                var unsplashImage: UIImage?
+                
+                switch result {
+                case let .success(data):
+                    if let image = self?.dataToImageService.getImage(from: data) {
+                         unsplashImage = image
+                    }
+                default: break
                 }
+                
+                return unsplashImage
             })
-            .compactMap { $0.0 }
+            .compactMap { $0 }
             .bind(to: imageRetrievedSuccess)
             .disposed(by: disposeBag)
     }
@@ -125,13 +130,16 @@ final class PhotoDetailViewModelImplementation: PhotoDetailViewModel {
         isLoading.accept(true)
         
         photosService.getPhoto(id: photoId)
-            .compactMap({ [weak self] (unsplashPhoto, error) in
-                guard let photo = unsplashPhoto, error == nil else {
+            .compactMap({ [weak self] (result) in
+                
+                switch result {
+                case let .success(photo):
+                    return photo
+                case .failure(_):
                     self?.imageRetrievedError.accept(())
                     return nil
                 }
                 
-                return photo
             })
             .bind(to: unsplashPhoto)
             .disposed(by: disposeBag)

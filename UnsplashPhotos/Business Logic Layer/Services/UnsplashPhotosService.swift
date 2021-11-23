@@ -8,51 +8,36 @@
 
 import RxSwift
 
-protocol UnsplashPhotosService: class {
-    /// Returns by default 10 photos
-    func getPhotos() -> Observable<([UnsplashPhoto]?, Error?)>
-    /// Specify a different count
-    func getPhotos(pageNumber: Int, perPage: Int) -> Observable<([UnsplashPhoto]?, Error?)>
-    
-    /// Returns random photos
-    func getRandomPhotos(count: Int) -> Observable<([UnsplashPhoto]?, Error?)>
+protocol UnsplashPhotosService: AnyObject {
+    /// Specify a count
+    func getPhotos(pageNumber: Int, perPage: Int) -> Observable<Result<[UnsplashPhoto], Error>>
     
     /// Return a photo by the given **id**
-    func getPhoto(id: String) -> Observable<(UnsplashPhoto?, Error?)>
+    func getPhoto(id: String) -> Observable<Result<UnsplashPhoto, Error>>
 }
 
 class UnsplashPhotosServiceImplementation: UnsplashPhotosService {
-    private let networkClient = NetworkClient(baseUrlString: BaseURLs.unsplash)
+    private let networkClient = NetworkClient()
     
-    func getPhotos() -> Observable<([UnsplashPhoto]?, Error?)> {
-        self.networkClient.getArray([UnsplashPhoto].self,
-                                    UnsplashEndpoints.getPhotos)
-    }
-    
-    func getPhotos(pageNumber: Int, perPage: Int) -> Observable<([UnsplashPhoto]?, Error?)> {
+    func getPhotos(pageNumber: Int, perPage: Int) -> Observable<Result<[UnsplashPhoto], Error>> {
         return Observable.deferred {
-            let parameter = ["page": String(pageNumber),
-                             "per_page": String(perPage),
-                             "order_by": "popular"]
+    
+            let endpoint = Endpoint.photos(page: pageNumber,
+                                           perPage: perPage)
+            
             return self.networkClient.getArray([UnsplashPhoto].self,
-                                               UnsplashEndpoints.getPhotos,
-                                               parameters: parameter)
+                                               url: endpoint.url,
+                                               headers: endpoint.headers)
         }
     }
     
-    func getRandomPhotos(count: Int) -> Observable<([UnsplashPhoto]?, Error?)> {
+    func getPhoto(id: String) -> Observable<Result<UnsplashPhoto, Error>> {
         return Observable.deferred {
-            let parameter = ["count": String(count)]
-            return self.networkClient.getArray([UnsplashPhoto].self,
-                                               UnsplashEndpoints.getRandomPhotos,
-                                               parameters: parameter)
-        }
-    }
-    
-    func getPhoto(id: String) -> Observable<(UnsplashPhoto?, Error?)> {
-        return Observable.deferred {
+            
+            let endpoint = Endpoint.photo(id: id)
             return self.networkClient.get(UnsplashPhoto.self,
-                                          "\(UnsplashEndpoints.getPhotoById)\(id)",
+                                          url: endpoint.url,
+                                          headers: endpoint.headers,
                                           printURL: true)
         }
     }

@@ -9,30 +9,30 @@
 import RxSwift
 
 protocol DataLoadingService: class {
-    func loadData(for urlString: String) -> Observable<(Data?, Error?)>
+    func loadData(for urlString: String) -> Observable<Result<Data, Error>>
     func loadData(at index: Int,
-                  for urlString: String) -> Observable<(Data?, Error?)>
+                  for urlString: String) -> Observable<Result<Data, Error>>
     func stopLoading(at index: Int)
 }
 
 class DataLoadingServiceImplementation: DataLoadingService {
     private var tasks: [Int: Disposable] = [:]
     
-    func loadData(at index: Int, for urlString: String) -> Observable<(Data?, Error?)> {
+    func loadData(at index: Int, for urlString: String) -> Observable<Result<Data, Error>> {
         return Observable.create { [weak self] observer in
             guard let url = URL(string: urlString) else {
-                observer.onNext((nil, NetworkError.invalidURL))
+                observer.onNext(.failure(NetworkError.invalidURL))
                 return Disposables.create()
             }
             
             let task = NetworkClient.getData(url)
-                .subscribe(onNext: { (data, error) in
-                    guard let data = data, error == nil else {
-                        observer.onNext((nil, error))
-                        return
+                .subscribe(onNext: { (result) in
+                    switch result {
+                    case let .failure(error):
+                        observer.onNext(.failure(error))
+                    case let .success(data):
+                        observer.onNext(.success(data))
                     }
-                    
-                    observer.onNext((data, nil))
                 })
             self?.tasks[index] = task
             
@@ -42,22 +42,22 @@ class DataLoadingServiceImplementation: DataLoadingService {
         }
     }
     
-    func loadData(for urlString: String) -> Observable<(Data?, Error?)> {
+    func loadData(for urlString: String) -> Observable<Result<Data, Error>> {
          return Observable.create { observer in
             
             guard let url = URL(string: urlString) else {
-                observer.onNext((nil, NetworkError.invalidURL))
+                observer.onNext(.failure(NetworkError.invalidURL))
                 return Disposables.create()
             }
             
             let task = NetworkClient.getData(url)
-                .subscribe(onNext: { (data, error) in
-                    guard let data = data, error == nil else {
-                        observer.onNext((nil, error))
-                        return
+                .subscribe(onNext: { (result) in
+                    switch result {
+                    case let .failure(error):
+                        observer.onNext(.failure(error))
+                    case let .success(data):
+                        observer.onNext(.success(data))
                     }
-                    
-                    observer.onNext((data, nil))
                 })
             
             return Disposables.create {

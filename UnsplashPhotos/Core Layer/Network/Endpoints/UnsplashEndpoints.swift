@@ -8,11 +8,28 @@
 
 import Foundation
 
-struct UnsplashEndpoints {
-    static let getPhotos
-        = "/photos"
-    static let getRandomPhotos
-        = "/photos/random"
-    static let getPhotoById
-        = "/photos/"
+extension Endpoint {
+    static func photos(page: Int, perPage: Int) -> Self {
+        return Endpoint(
+            path: "photos",
+            queryItems: [
+                URLQueryItem(
+                    name: "page",
+                    value: String(page)
+                ),
+                URLQueryItem(
+                    name: "per_page",
+                    value: String(perPage)
+                ),
+                URLQueryItem(
+                    name: "order_by",
+                    value: "popular"
+                )
+            ]
+        )
+    }
+    
+    static func photo(id: String) -> Self {
+        return Endpoint(path: "photos/\(id)")
+    }
 }

@@ -218,6 +218,14 @@ extension PhotosViewController {
         self.navigationController?.navigationBar.tintColor = .black
         self.navigationController?.navigationBar.barTintColor = .white
         self.navigationController?.navigationBar.isTranslucent = false
+        
+        if #available(iOS 15.0, *) {
+            let appearance = UINavigationBarAppearance()
+            appearance.configureWithOpaqueBackground()
+            appearance.backgroundColor = .white
+            self.navigationController?.navigationBar.standardAppearance = appearance
+            self.navigationController?.navigationBar.scrollEdgeAppearance = appearance
+        }
     }
     
     private func setupNavigationItem() {

@@ -127,8 +127,14 @@ final class PhotosViewModelImplementation: PhotosViewModel {
                     .observeOn(
                         ConcurrentDispatchQueueScheduler(qos: .background)
                     )
-                    .concatMap { (data, error) in
-                        Observable.of((index, data, error))
+                    .concatMap { (result) -> Observable<(Int, Data?, Error?)> in
+                        switch result {
+                        case let .failure(error):
+                            return Observable.of((index, nil, error))
+                        case let .success(data):
+                            return Observable.of((index, data, nil))
+                        }
+                        
                     }
             })
             .subscribe(onNext: { [weak self] (index, data, error) in
@@ -202,8 +208,15 @@ final class PhotosViewModelImplementation: PhotosViewModel {
                         .accept(false)
                 }
             })
-            .filter { $0.1 == nil && $0.0 != nil }
-            .map { return $0.0! }
+            .compactMap({ (result) -> [UnsplashPhoto] in
+                switch result {
+                case .failure(_):
+                    return []
+                case let .success(unplashPhotos):
+                    return unplashPhotos
+                }
+            })
+            .filter { !$0.isEmpty }
             .flatMap({ [unowned self] (unsplashPhotos) -> Observable<[UnsplashPhoto]> in
                 
                 var photos: [UnsplashPhoto] = []
